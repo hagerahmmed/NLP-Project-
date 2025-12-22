@@ -2,10 +2,6 @@ import streamlit as st
 import pandas as pd
 import joblib
 
-import streamlit as st
-
-
-
 # ---------- Load files ----------
 model = joblib.load("skinecare/logistic_model.pkl")
 vectorizer = joblib.load("skinecare/tfidf_vectorizer.pkl")
@@ -63,7 +59,7 @@ if choice == "🔍 Predict product type":
             st.success(f"Predicted Type: {pred}")
 
 # ---------- Routine Section ----------
-if choice == " Get skin care routine":
+if choice == "Get skin care routine":
     st.subheader("Skin Care Routine")
 
     skin = st.selectbox(
