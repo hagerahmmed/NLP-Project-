@@ -7,9 +7,9 @@ import streamlit as st
 
 
 # ---------- Load files ----------
-model = joblib.load("skincare/svm_model.pkl")
-vectorizer = joblib.load("skin_care/tfidf_vectorizer (2).pkl")
-df = pd.read_csv("skincare/final_merged (2) (1).csv")
+model = joblib.load("skinecare/logistic_model.pkl")
+vectorizer = joblib.load("skinecare/tfidf_vectorizer.pkl")
+df = pd.read_csv("skinecare/merged_cleaned.csv")
 
 st.set_page_config(page_title="Skincare NLP System")
 st.title(" Skincare NLP System")
