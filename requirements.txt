@@ -1,5 +1,0 @@
-streamlit==1.29.0
-pandas
-scikit-learn
-joblib
-streamlit-chat
