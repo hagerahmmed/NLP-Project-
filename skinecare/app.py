@@ -1,16 +1,52 @@
 import streamlit as st
 import pandas as pd
 import joblib
+import numpy as np
 
 # ---------- Load files ----------
-model = joblib.load("skinecare/logistic_model.pkl")
-vectorizer = joblib.load("skinecare/tfidf_vectorizer.pkl")
-df = pd.read_csv("final_merged.csv")
+model = joblib.load("skincare/svm_model.pkl")
+vectorizer = joblib.load("skin_care/tfidf_vectorizer (2).pkl")
+df = pd.read_csv("skincare/final_merged (2) (1).csv")
 
 st.set_page_config(page_title="Skincare NLP System")
-st.title(" Skincare NLP System")
+st.title("🧴 Skincare NLP System")
 
-# ---------- Helper Function ----------
+# --------- FUNCTION: NLP routine based on skin problem ----------
+def nlp_skin_problem_routine(text, model, vectorizer, top_n=2):
+
+    # 1) Vectorize input text
+    vec = vectorizer.transform([text])
+
+    # 2) Predict product type for the problem (cleanser/toner/serum/moisturizer)
+    pred_type = model.predict(vec)[0]
+
+    # 3) Filter products from dataset that match predicted type
+    filtered = df[df["type"].str.contains(pred_type, case=False, na=False)]
+
+    if filtered.empty:
+        return {}
+
+    # 4) Score products using NLP model again
+    X_filtered = vectorizer.transform(filtered["text"])
+
+    try:
+        scores = model.decision_function(X_filtered)
+    except:
+        scores = model.predict_proba(X_filtered)
+        scores = np.max(scores, axis=1)
+
+    filtered["score"] = scores
+
+    # 5) Sort and select top N
+    filtered = filtered.sort_values("score", ascending=False)
+
+    # Return top products
+    return {
+        pred_type: filtered[["brand", "name", "type"]].head(top_n).to_dict("records")
+    }
+
+
+# ---------- FUNCTION: Skin routine based on skin type ----------
 def simple_skin_routine(skin_type, top_n=2):
     skin_type = skin_type.capitalize()
 
@@ -38,25 +74,33 @@ def simple_skin_routine(skin_type, top_n=2):
 # ---------- UI Choice ----------
 choice = st.radio(
     "What do you want to do?",
-    ["🔍 Predict product type", "Get skin care routine"]
+    ["🔍 Fix skin problem (NLP)", "Get skin care routine"]
 )
 
-# ---------- Predict Section ----------
-if choice == "🔍 Predict product type":
-    st.subheader("Predict Product Type")
+# ---------- NLP Skin Problem ----------
+if choice == "🔍 Fix skin problem (NLP)":
+    st.subheader("🔍 Enter your skin problem")
 
     text = st.text_area(
-        "Enter product description (after use / name / brand)",
-        placeholder="Example: reduces acne and redness, Acne Serum, COSRX"
+        "Describe your skin problem",
+        placeholder="Example: I have acne and redness around my cheeks"
     )
 
-    if st.button("Predict"):
+    if st.button("Get Products"):
         if text.strip() == "":
-            st.warning("Please enter product description")
+            st.warning("Please enter your skin problem")
         else:
-            vec = vectorizer.transform([text])
-            pred = model.predict(vec)[0]
-            st.success(f"Predicted Type: {pred}")
+            results = nlp_skin_problem_routine(text, model, vectorizer)
+
+            if not results:
+                st.warning("No matching products found")
+            else:
+                st.success("Products recommended for your skin problem:")
+                for step, prods in results.items():
+                    st.markdown(f"### {step.upper()}")
+                    for p in prods:
+                        st.write(f"- {p['brand']} | {p['name']}")
+
 
 # ---------- Routine Section ----------
 if choice == "Get skin care routine":
@@ -78,3 +122,4 @@ if choice == "Get skin care routine":
                 st.markdown(f"### {r_type.upper()}")
                 for _, row in items.iterrows():
                     st.write(f"- {row['brand']} ({row['type']})")
+
